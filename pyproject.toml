@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "personal-context-mcp-memory"
+version = "0.1.0"
+description = "Offline MCP-style personal context memory system with Ollama, FAISS, Neo4j, and Streamlit."
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+license = { text = "MIT" }
+authors = [
+  { name = "OpenAI Codex" }
+]
+dependencies = [
+  "pydantic>=2.9,<3.0",
+  "streamlit>=1.44,<2.0",
+  "sentence-transformers>=3.3,<4.0",
+  "faiss-cpu>=1.13.2,<2.0",
+  "neo4j>=5.28,<6.0",
+  "python-docx>=1.1,<2.0",
+  "pypdf>=5.4,<6.0",
+  "mcp[cli]>=1.10,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9.0",
+  "pytest-cov>=6.0,<7.0",
+  "ruff>=0.11,<0.12",
+]
+
+[project.scripts]
+personal-context-mcp-server = "mcp_server:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["memory_core*", "adapters*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

@@ -1,0 +1,121 @@
+{
+  "dimension": 384,
+  "entries": [
+    {
+      "faiss_id": 1,
+      "metadata": {
+        "chunk_id": null,
+        "memory_id": "docmem::src_aa244c1db1884d1e801cbc9a25bf8472",
+        "memory_type": "document",
+        "source_chunk_ids": [
+          "chunk_ccfd9581eda54671b249d3be1148728e",
+          "chunk_a6e2556d8d0a42969436d77c8d67a3e6",
+          "chunk_c8e69797974b4a6185d65d8112d1f3bb",
+          "chunk_2abfe08afe5944b28bde9821be4d27f9",
+          "chunk_4b636bcf31af4dfeb026a1c0b44bf12c"
+        ],
+        "source_id": "src_aa244c1db1884d1e801cbc9a25bf8472"
+      },
+      "vector_id": "mem::docmem::src_aa244c1db1884d1e801cbc9a25bf8472"
+    },
+    {
+      "faiss_id": 2,
+      "metadata": {
+        "chunk_id": "chunk_ccfd9581eda54671b249d3be1148728e",
+        "memory_id": "chunkmem::chunk_ccfd9581eda54671b249d3be1148728e",
+        "memory_type": "document_chunk",
+        "source_chunk_ids": [
+          "chunk_ccfd9581eda54671b249d3be1148728e"
+        ],
+        "source_id": "src_aa244c1db1884d1e801cbc9a25bf8472"
+      },
+      "vector_id": "mem::chunkmem::chunk_ccfd9581eda54671b249d3be1148728e"
+    },
+    {
+      "faiss_id": 3,
+      "metadata": {
+        "chunk_id": "chunk_a6e2556d8d0a42969436d77c8d67a3e6",
+        "memory_id": "chunkmem::chunk_a6e2556d8d0a42969436d77c8d67a3e6",
+        "memory_type": "document_chunk",
+        "source_chunk_ids": [
+          "chunk_a6e2556d8d0a42969436d77c8d67a3e6"
+        ],
+        "source_id": "src_aa244c1db1884d1e801cbc9a25bf8472"
+      },
+      "vector_id": "mem::chunkmem::chunk_a6e2556d8d0a42969436d77c8d67a3e6"
+    },
+    {
+      "faiss_id": 4,
+      "metadata": {
+        "chunk_id": "chunk_c8e69797974b4a6185d65d8112d1f3bb",
+        "memory_id": "chunkmem::chunk_c8e69797974b4a6185d65d8112d1f3bb",
+        "memory_type": "document_chunk",
+        "source_chunk_ids": [
+          "chunk_c8e69797974b4a6185d65d8112d1f3bb"
+        ],
+        "source_id": "src_aa244c1db1884d1e801cbc9a25bf8472"
+      },
+      "vector_id": "mem::chunkmem::chunk_c8e69797974b4a6185d65d8112d1f3bb"
+    },
+    {
+      "faiss_id": 5,
+      "metadata": {
+        "chunk_id": "chunk_2abfe08afe5944b28bde9821be4d27f9",
+        "memory_id": "chunkmem::chunk_2abfe08afe5944b28bde9821be4d27f9",
+        "memory_type": "document_chunk",
+        "source_chunk_ids": [
+          "chunk_2abfe08afe5944b28bde9821be4d27f9"
+        ],
+        "source_id": "src_aa244c1db1884d1e801cbc9a25bf8472"
+      },
+      "vector_id": "mem::chunkmem::chunk_2abfe08afe5944b28bde9821be4d27f9"
+    },
+    {
+      "faiss_id": 6,
+      "metadata": {
+        "chunk_id": "chunk_4b636bcf31af4dfeb026a1c0b44bf12c",
+        "memory_id": "chunkmem::chunk_4b636bcf31af4dfeb026a1c0b44bf12c",
+        "memory_type": "document_chunk",
+        "source_chunk_ids": [
+          "chunk_4b636bcf31af4dfeb026a1c0b44bf12c"
+        ],
+        "source_id": "src_aa244c1db1884d1e801cbc9a25bf8472"
+      },
+      "vector_id": "mem::chunkmem::chunk_4b636bcf31af4dfeb026a1c0b44bf12c"
+    },
+    {
+      "faiss_id": 7,
+      "metadata": {
+        "chunk_id": null,
+        "memory_id": "chatmem_69ae0ff5cd1b41cbb7c08af4f0487e18",
+        "memory_type": "fact",
+        "source_chunk_ids": [],
+        "source_id": null
+      },
+      "vector_id": "mem::chatmem_69ae0ff5cd1b41cbb7c08af4f0487e18"
+    },
+    {
+      "faiss_id": 8,
+      "metadata": {
+        "chunk_id": null,
+        "memory_id": "chatmem_d52d6562dcd2403cba913b85a1fb326f",
+        "memory_type": "fact",
+        "source_chunk_ids": [],
+        "source_id": null
+      },
+      "vector_id": "mem::chatmem_d52d6562dcd2403cba913b85a1fb326f"
+    },
+    {
+      "faiss_id": 9,
+      "metadata": {
+        "chunk_id": null,
+        "memory_id": "chatmem_3686bb04b74f41e88047a2700cd46f89",
+        "memory_type": "fact",
+        "source_chunk_ids": [],
+        "source_id": null
+      },
+      "vector_id": "mem::chatmem_3686bb04b74f41e88047a2700cd46f89"
+    }
+  ],
+  "next_faiss_id": 10
+}
