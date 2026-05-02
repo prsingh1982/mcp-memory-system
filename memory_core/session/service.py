@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 from typing import Any, TypeVar
 from uuid import uuid4
 
@@ -82,7 +83,9 @@ class DefaultSessionService(SessionService):
         promotion_messages = snapshot.recent_messages[-self.promotion_window_messages :]
         promotion_transcript = self._render_transcript(promotion_messages)
         promoted_memories = self._promote_durable_memories(snapshot, promotion_transcript)
-        return promoted_memories[0] if promoted_memories else None
+        heuristic_memories = self._promote_heuristic_memories(snapshot, promotion_messages)
+        all_promoted = promoted_memories + heuristic_memories
+        return all_promoted[0] if all_promoted else None
 
     def _promote_durable_memories(
         self,
@@ -158,7 +161,41 @@ class DefaultSessionService(SessionService):
 
         return promoted
 
+    def _promote_heuristic_memories(
+        self,
+        snapshot: SessionSnapshot,
+        messages: list[SessionMessage],
+    ) -> list[MemoryRecord]:
+        promoted: list[MemoryRecord] = []
+        for message in messages:
+            if message.role != "user":
+                continue
+
+            name = self._extract_name_fact(message.content)
+            if name:
+                promoted.append(
+                    self._store_or_merge_identity_memory(
+                        snapshot,
+                        identity_key="user_name",
+                        content=f"User's name is {name}.",
+                        summary=f"User name: {name}",
+                        tags=["chat_memory", "identity", "name"],
+                        confidence=0.98,
+                        importance=0.95,
+                    )
+                )
+
+        return promoted
+
     def _find_existing_memory(self, candidate_memory: MemoryRecord) -> MemoryRecord | None:
+        identity_key = candidate_memory.metadata.get("identity_key")
+        if identity_key:
+            for memory in self.retrieval_service.memory_repository.list_memories([candidate_memory.memory_type]):  # type: ignore[attr-defined]
+                if memory.status != MemoryStatus.ACTIVE:
+                    continue
+                if memory.metadata.get("identity_key") == identity_key:
+                    return memory
+
         retrieval_result = self.retrieval_service.retrieve(
             RetrievalQuery(
                 query=candidate_memory.content,
@@ -175,6 +212,55 @@ class DefaultSessionService(SessionService):
         if best.score.final_score < self.merge_score_threshold:
             return None
         return best.memory
+
+    def _store_or_merge_identity_memory(
+        self,
+        snapshot: SessionSnapshot,
+        *,
+        identity_key: str,
+        content: str,
+        summary: str,
+        tags: list[str],
+        confidence: float,
+        importance: float,
+    ) -> MemoryRecord:
+        metadata = {
+            "persistent_across_sessions": True,
+            "source_kind": "chat",
+            "identity_key": identity_key,
+            "source_session_ids": [snapshot.session_id],
+            "source_conversation_ids": [snapshot.conversation_id],
+            "heuristic": True,
+        }
+        memory = MemoryRecord(
+            memory_id=f"chatmem_{uuid4().hex}",
+            memory_type=MemoryType.FACT,
+            status=MemoryStatus.ACTIVE,
+            content=content,
+            summary=summary,
+            source_id=None,
+            session_id=None,
+            conversation_id=None,
+            confidence=confidence,
+            importance=importance,
+            tags=self._dedupe_strings(tags),
+            version=1,
+            parent_memory_id=None,
+            supersedes_memory_id=None,
+            embedding_ref=None,
+            graph_node_ref=None,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            deleted_at=None,
+            metadata=metadata,
+        )
+        existing = self._find_existing_memory(memory)
+        if existing is None:
+            return self.memory_service.store_memory(memory)
+
+        merged_updates = build_merged_memory_updates(existing, memory)
+        merged_updates["metadata"] = self._merge_metadata(existing.metadata, memory.metadata)
+        return self.memory_service.update_memory(existing.memory_id, merged_updates)
 
     @staticmethod
     def _render_transcript(messages: list[SessionMessage]) -> str:
@@ -265,6 +351,22 @@ class DefaultSessionService(SessionService):
             if text and text not in deduped:
                 deduped.append(text)
         return deduped
+
+    @staticmethod
+    def _extract_name_fact(text: str) -> str | None:
+        patterns = (
+            r"\bmy name is ([A-Za-z][A-Za-z' -]{1,80})",
+            r"\bi am called ([A-Za-z][A-Za-z' -]{1,80})",
+            r"\bcall me ([A-Za-z][A-Za-z' -]{1,80})",
+        )
+        for pattern in patterns:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if not match:
+                continue
+            candidate = match.group(1).strip(" .,!?:;")
+            if candidate:
+                return " ".join(part.capitalize() for part in candidate.split())
+        return None
 
     def _record_audit_event(
         self,

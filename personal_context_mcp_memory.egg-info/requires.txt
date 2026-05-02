@@ -1,0 +1,13 @@
+pydantic<3.0,>=2.9
+streamlit<2.0,>=1.44
+sentence-transformers<4.0,>=3.3
+faiss-cpu<2.0,>=1.13.2
+neo4j<6.0,>=5.28
+python-docx<2.0,>=1.1
+pypdf<6.0,>=5.4
+mcp[cli]<2.0,>=1.10
+
+[dev]
+pytest<9.0,>=8.3
+pytest-cov<7.0,>=6.0
+ruff<0.12,>=0.11

@@ -137,6 +137,36 @@ class DefaultMemoryService(MemoryService):
     def get_memory_history(self, memory_id: str) -> list[MemoryRecord]:
         return self.memory_repository.get_memory_versions(memory_id)
 
+    def reindex_memory(self, memory_id: str) -> MemoryRecord:
+        memory = self.memory_repository.get_memory(memory_id)
+        if memory is None:
+            raise KeyError(f"Memory not found: {memory_id}")
+        self._sync_indexes(memory)
+        return memory
+
+    def reindex_all_memories(self) -> dict[str, Any]:
+        memories = self.memory_repository.list_memories()
+        repaired = 0
+        failures: list[dict[str, str]] = []
+
+        for memory in memories:
+            try:
+                if memory.status == MemoryStatus.ACTIVE:
+                    self._sync_indexes(memory)
+                else:
+                    self._remove_from_vector_index(memory.memory_id)
+                    if self.graph_store is not None and memory.status == MemoryStatus.DELETED:
+                        self.graph_store.mark_deleted(memory.memory_id, memory.deleted_at or memory.updated_at)
+                repaired += 1
+            except Exception as exc:
+                failures.append({"memory_id": memory.memory_id, "error": str(exc)})
+
+        return {
+            "total": len(memories),
+            "repaired": repaired,
+            "failures": failures,
+        }
+
     def _prepare_memory_for_storage(self, memory: MemoryRecord, *, is_new: bool) -> MemoryRecord:
         update: dict[str, Any] = {
             "updated_at": memory.updated_at or datetime.utcnow(),

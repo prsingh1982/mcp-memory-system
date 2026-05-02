@@ -1,0 +1,2 @@
+[console_scripts]
+personal-context-mcp-server = mcp_server:main

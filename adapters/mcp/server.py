@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from dotenv import load_dotenv
+
 from memory_core.citations import DefaultCitationService
 from memory_core.domain.enums import AuditEventType, MemoryStatus, MemoryType, ReviewDecision, SourceType
 from memory_core.domain.models import MemoryRecord, RetrievalQuery, SourceReference
@@ -43,6 +45,8 @@ from memory_core.storage import (
     SQLiteSourceRepository,
 )
 
+load_dotenv()
+    
 try:
     from mcp.server.fastmcp import FastMCP
 except ImportError:  # pragma: no cover - runtime dependency
@@ -105,6 +109,17 @@ def load_services_from_env(base_dir: str | Path | None = None) -> AppServices:
     neo4j_user = os.getenv("NEO4J_USERNAME")
     neo4j_password = os.getenv("NEO4J_PASSWORD")
     neo4j_database = os.getenv("NEO4J_DATABASE", "neo4j")
+
+    print("NEO4J DETAILS")
+    print(f"NEO4J_URI: {neo4j_uri}")
+    print(f"NEO4J_USERNAME: {neo4j_user}")
+    print(f"NEO4J_PASSWORD: {'*' * len(neo4j_password) if neo4j_password else None}")
+    print(f"NEO4J_DATABASE: {neo4j_database}")
+    print(f"LLM Base URL in Environment Variables: '{os.getenv("OLLAMA_BASE_URL")}'")
+    print(f"LLM Timeout Seconds in Environment Variables: '{os.getenv("OLLAMA_TIMEOUT_SECONDS")}'")
+    print(f"LLM Keep Alive in Environment Variables: '{os.getenv("OLLAMA_KEEP_ALIVE")}'")
+    print(f"LLM API Key in Environment Variables: {'*' * len(os.getenv('OLLAMA_API_KEY', ''))}")
+
     graph_store = None
     if neo4j_uri and neo4j_user and neo4j_password:
         graph_store = Neo4jGraphStore(
@@ -113,13 +128,19 @@ def load_services_from_env(base_dir: str | Path | None = None) -> AppServices:
             password=neo4j_password,
             database=neo4j_database,
         )
+    
 
+    
     llm_client = OllamaLLMClient(
         model_name=os.getenv("OLLAMA_MODEL", "llama3.1:latest"),
         base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/api"),
         timeout_seconds=float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "1000")),
         keep_alive=os.getenv("OLLAMA_KEEP_ALIVE", "5m"),
+        apikey=os.getenv("OLLAMA_API_KEY"),
     )
+    
+    
+    print(f"LLM client configured with model {llm_client.model_name} and base URL {llm_client.base_url}")
 
     parser_registry = ParserRegistry(
         [
@@ -175,6 +196,16 @@ def load_services_from_env(base_dir: str | Path | None = None) -> AppServices:
         llm_client=llm_client,
         memory_service=memory_service,
     )
+
+    reindex_summary = memory_service.reindex_all_memories()
+    print(
+        "Memory index reconciliation complete: "
+        f"{reindex_summary['repaired']}/{reindex_summary['total']} processed"
+    )
+    if reindex_summary["failures"]:
+        print("Memory index reconciliation failures:")
+        for failure in reindex_summary["failures"]:
+            print(f"  - {failure['memory_id']}: {failure['error']}")
 
     return AppServices(
         ingestion_service=ingestion_service,

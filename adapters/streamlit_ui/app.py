@@ -134,6 +134,24 @@ def _render_chat_tab(services: AppServices) -> None:
                 for citation in item.citations
             ]
             st.markdown(answer)
+            with st.expander("Retrieved Memory Debug", expanded=False):
+                st.write(f"Session summary: {retrieval_result.session_summary or 'None'}")
+                if not retrieval_result.items:
+                    st.info("No memories were retrieved for this answer.")
+                for item in retrieval_result.items:
+                    st.json(
+                        {
+                            "memory_id": item.memory.memory_id,
+                            "memory_type": item.memory.memory_type.value,
+                            "source_id": item.memory.source_id,
+                            "summary": item.memory.summary,
+                            "score": _model_dump(item.score),
+                            "matched_chunk_ids": item.matched_chunk_ids,
+                            "reasoning": item.reasoning,
+                            "tags": item.memory.tags,
+                            "metadata": item.memory.metadata,
+                        }
+                    )
             if citations:
                 with st.expander("Citations", expanded=False):
                     for citation in citations:

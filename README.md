@@ -106,7 +106,7 @@ pytest
 
 ## Notes
 
-- The system is fully local-first by design.
+- The system is fully local-first by design, but you may use online LLMs hosted by OpenAI or OpenRouter or any other platform by modifying the .env file, as long as the LLM conforms to OpenAI API.
 - FAISS is currently kept as the vector backend because `faiss-cpu` publishes Windows wheels for CPython 3.14.
 - The Streamlit chat uses retrieval-grounded local generation through Ollama.
 - Candidate memories remain reviewable before becoming canonical active memory.

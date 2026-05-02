@@ -22,6 +22,7 @@ class OllamaLLMClient(LLMClient):
         timeout_seconds: float = 120.0,
         keep_alive: str | None = "5m",
         options: dict[str, Any] | None = None,
+        apikey: str | None = None,
     ) -> None:
         if not model_name:
             raise ValueError("model_name must be non-empty")
@@ -33,6 +34,8 @@ class OllamaLLMClient(LLMClient):
         self.timeout_seconds = timeout_seconds
         self.keep_alive = keep_alive
         self.options = dict(options or {})
+        self.apikey = apikey or ""
+        print(f"Initialized OllamaLLMClient with model {self.model_name} and base URL {self.base_url}")
 
     def generate(self, prompt: str, system_prompt: str | None = None) -> str:
         """Generate a free-form assistant response."""
@@ -121,9 +124,14 @@ class OllamaLLMClient(LLMClient):
         request = Request(
             url=f"{self.base_url}/chat",
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.apikey}" if self.apikey else "",
+                },
             method="POST",
         )
+
+        print(f"Sending request to Ollama API at {self.base_url}/chat with model {self.model_name}")
 
         try:
             with urlopen(request, timeout=self.timeout_seconds) as response:

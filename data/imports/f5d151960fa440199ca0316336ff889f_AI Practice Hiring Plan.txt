@@ -1,56 +1,0 @@
-
-
-AI PRACTICE HIRING AND RESOURCE UTILIZATION PLAN 
-
-
-
-
-
-
-Prepared By:
-Prashant Singh
-AI Practice Head
-Version: 1.0 | Date: 23 Apr 2026 | Status: Draft for Review
-
-
-
-
-CONFIDENTIAL — FOR INTERNAL USE ONLY
-
-
-Introduction & Overall Strategy
-This document outlines a comprehensive hiring and resource utilization strategy for the AI practice at Quantaleap. It is designed to support multiple concurrent projects with varying complexity levels and ensuring optimal use of limited hiring capacity. 
-
-The AI practice is currently operating with a highly constrained team structure, consisting of a single senior leader and two interns, who are still in training. At the same time, four projects with delivery expectations ranging from MVP to production-grade systems are scheduled to begin within a narrow time window. Given these constraints, the strategy focuses on building shared capabilities across projects rather than assigning isolated teams. This ensures that each hire contributes across multiple initiatives, thereby maximizing utilization and reducing the risk of bottlenecks.
-
-Project Skill Requirements
-The CSV/RA Automation projects, based on agentic AI requires deep expertise in large language models, particularly open-source variants. This includes the ability to design RAG systems, orchestrate multi-step agent workflows and implement robust prompt engineering strategies. In addition, strong backend engineering skills are required to build scalable APIs and integrate various components into a cohesive system. These skills are not constrained to this project, but are all pervading in AI Development. Therefore, the members of this project can be looked as long-term additions to the Quantaleap workforce.
-
-The OCR and Barcode Reader project is primarily engineering-driven in its initial stages. It requires strong capabilities in image preprocessing, OCR frameworks and barcode decoding techniques. While advanced machine learning techniques may be introduced later, the immediate focus is on leveraging existing tools and optimizing them for accuracy and performance. This is a unique/specific requirement and therefore this project can be assigned to contractual resources.
-
-The Visual Anomaly Detection project is the most technically demanding in terms of computer vision. It requires expertise in deep learning frameworks, particularly TensorFlow, and familiarity with anomaly detection techniques such as autoencoders and feature-based methods. Data quality and preparation play a critical role in the success of this project.
-
-The Agentic Service Desk project builds upon the same foundational capabilities as the PDF analysis system but extends them into conversational workflows. It requires the ability to design intelligent agents that can interact with enterprise systems, manage context, and automate multi-step processes.
-
-
-
-
-
-
-
-
-
-
-
-Hiring Plan
-RolePriorityTimelineExperienceResponsibilitiesPosition TypeKey ResponsibilitiesSenior Applied AI EngineerHigh2 Weeks6-9 yearsLeads agentic AI and PDF analysis initiativesFTELead CSV/RA Agentic AI, support Service DeskComputer Vision EngineerHigh3 Weeks4-5 yearsLeads anomaly detection and supports OCRFTE/ContractualLead anomaly detection, support OCRApplied AI EngineerMedium3 Weeks4-5 yearsSupports OCR and agentic systemsFTE/ContractualSupport CSV/RA, Service DeskMLOps/Data EngineerMedium4 Weeks3-4 yearsHandles deployment, pipelines, and AWS infrastructureContractualAWS pipelines, deployment, monitoringJunior AI EngineerOptional5 Weeks0-2 yearsSupports experimentation and data preparationFTESupport experimentation and datasetsResource Allocation Strategy
-The resource allocation strategy is designed to ensure that each project is adequately staffed while maintaining flexibility. The senior AI engineer focuses primarily on the CSV/RA automation project while contributing to the service desk initiative. The computer vision engineer leads the anomaly detection work and supports the OCR project. The applied AI engineer provides cross-functional support and the MLOps engineer ensures that all systems are production-ready. The interns are aligned to specific tracks and contribute to data preparation, testing, and experimentation.
-Execution Timeline
-PhaseTimelineDescriptionPhase 1Weeks 1-2Hiring beginsPhase 2Weeks 3-4Computer vision work begins and OCR project progressesPhase 3Weeks 5-8MLOps onboarding and service desk initiationConclusion
-This plan provides a structured approach to scaling the AI practice while managing multiple high-priority initiatives. It balances immediate execution needs with long-term capability building, ensuring that the organization can deliver high-quality outcomes within the defined timelines.
-
-AI Practice Hiring and Resource Utilization Plan	                                                                                      
-
- 
-3
-

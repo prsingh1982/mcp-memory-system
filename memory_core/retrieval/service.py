@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 from typing import Any, TypeVar
 from uuid import uuid4
 
@@ -127,6 +128,38 @@ class DefaultRetrievalService(RetrievalService):
             if existing is None or candidate.score.semantic_score > existing.score.semantic_score:
                 best_by_memory_id[memory.memory_id] = candidate
 
+        for candidate in self._keyword_shortlist(query):
+            existing = best_by_memory_id.get(candidate.memory.memory_id)
+            if existing is None or candidate.score.semantic_score > existing.score.semantic_score:
+                best_by_memory_id[candidate.memory.memory_id] = candidate
+
+        for candidate in self._profile_shortlist(query):
+            existing = best_by_memory_id.get(candidate.memory.memory_id)
+            if existing is None:
+                best_by_memory_id[candidate.memory.memory_id] = candidate
+            else:
+                updated_semantic = max(existing.score.semantic_score, candidate.score.semantic_score)
+                updated_graph = max(existing.score.graph_score, candidate.score.graph_score)
+                best_by_memory_id[candidate.memory.memory_id] = _model_copy(
+                    existing,
+                    {
+                        "memory": self._with_signals(
+                            existing.memory,
+                            semantic_score=updated_semantic,
+                            graph_score=updated_graph,
+                            source_chunk_ids=existing.matched_chunk_ids or candidate.matched_chunk_ids,
+                        ),
+                        "score": _model_copy(
+                            existing.score,
+                            {
+                                "semantic_score": updated_semantic,
+                                "graph_score": updated_graph,
+                                "final_score": max(existing.score.final_score, candidate.score.final_score),
+                            },
+                        ),
+                    },
+                )
+
         return list(best_by_memory_id.values())
 
     def expand_with_graph_context(self, items: list[RetrievedMemory]) -> list[RetrievedMemory]:
@@ -241,6 +274,75 @@ class DefaultRetrievalService(RetrievalService):
             return None
         return self.session_repository.get_session(session_id)
 
+    def _keyword_shortlist(self, query: RetrievalQuery) -> list[RetrievedMemory]:
+        query_terms = self._query_terms(query.query)
+        if not query_terms:
+            return []
+
+        candidates: list[RetrievedMemory] = []
+        for memory in self.memory_repository.list_memories(query.memory_types or None):
+            if not query.include_deleted and memory.status == MemoryStatus.DELETED:
+                continue
+            if query.tags and not set(query.tags).intersection(memory.tags):
+                continue
+
+            lexical_score = self._keyword_match_score(query.query, query_terms, memory)
+            if lexical_score <= 0.0:
+                continue
+
+            matched_chunk_ids = self._resolve_matched_chunk_ids(memory, memory.metadata)
+            memory_with_signals = self._with_signals(
+                memory,
+                semantic_score=max(float(memory.metadata.get("semantic_score", 0.0)), lexical_score),
+                source_chunk_ids=matched_chunk_ids or None,
+            )
+            candidates.append(
+                RetrievedMemory(
+                    memory=memory_with_signals,
+                    score=ScoreBreakdown(semantic_score=lexical_score, final_score=lexical_score),
+                    citations=[],
+                    matched_chunk_ids=matched_chunk_ids,
+                    reasoning="Matched via keyword fallback against stored memory text.",
+                )
+            )
+
+        candidates.sort(key=lambda item: item.score.semantic_score, reverse=True)
+        return candidates[: max(query.top_k * 2, query.top_k)]
+
+    def _profile_shortlist(self, query: RetrievalQuery) -> list[RetrievedMemory]:
+        if not self._is_profile_query(query.query):
+            return []
+
+        results: list[RetrievedMemory] = []
+        for memory in self.memory_repository.list_memories():
+            if memory.status != MemoryStatus.ACTIVE:
+                continue
+            if memory.memory_type not in {MemoryType.FACT, MemoryType.PREFERENCE, MemoryType.WORKFLOW_RULE}:
+                continue
+            if not self._is_persistent_profile_memory(memory):
+                continue
+
+            matched_chunk_ids = self._resolve_matched_chunk_ids(memory, memory.metadata)
+            score = max(0.55, min(0.92, float(memory.importance)))
+            memory_with_signals = self._with_signals(
+                memory,
+                semantic_score=score,
+                graph_score=max(float(memory.metadata.get("graph_score", 0.0)), 0.25),
+                source_chunk_ids=matched_chunk_ids or None,
+            )
+            results.append(
+                RetrievedMemory(
+                    memory=memory_with_signals,
+                    score=ScoreBreakdown(semantic_score=score, graph_score=0.25, final_score=score),
+                    citations=[],
+                    matched_chunk_ids=matched_chunk_ids,
+                    reasoning="Included as persistent profile memory for a personal-context query.",
+                )
+            )
+
+        results.sort(key=lambda item: (item.memory.importance, item.memory.updated_at), reverse=True)
+        return results[:5]
+
     def _record_audit_event(
         self,
         *,
@@ -267,3 +369,59 @@ class DefaultRetrievalService(RetrievalService):
     @staticmethod
     def _clamp(value: float) -> float:
         return max(0.0, min(1.0, value))
+
+    @staticmethod
+    def _query_terms(text: str) -> list[str]:
+        stop_words = {
+            "the", "and", "for", "are", "with", "that", "this", "from", "have", "your",
+            "what", "when", "where", "which", "about", "into", "after", "before", "would",
+            "could", "should", "there", "their", "them", "then", "than", "tell", "please",
+        }
+        terms = re.findall(r"[a-zA-Z0-9_]+", text.lower())
+        return [term for term in terms if len(term) >= 3 and term not in stop_words]
+
+    @classmethod
+    def _keyword_match_score(cls, raw_query: str, query_terms: list[str], memory: MemoryRecord) -> float:
+        haystack = "\n".join(
+            [
+                memory.summary or "",
+                memory.content or "",
+                " ".join(memory.tags),
+                str(memory.metadata.get("identity_key", "")),
+            ]
+        ).lower()
+        normalized_query = raw_query.strip().lower()
+        if normalized_query and normalized_query in haystack:
+            return 0.97
+
+        matched_terms = [term for term in query_terms if term in haystack]
+        if not matched_terms:
+            return 0.0
+
+        coverage = len(matched_terms) / max(len(query_terms), 1)
+        exact_name_bonus = 0.15 if "name" in query_terms and "name" in haystack else 0.0
+        document_bonus = 0.10 if memory.memory_type in {MemoryType.DOCUMENT, MemoryType.DOCUMENT_CHUNK} else 0.0
+        return cls._clamp((coverage * 0.75) + exact_name_bonus + document_bonus)
+
+    @staticmethod
+    def _is_profile_query(text: str) -> bool:
+        normalized = text.lower()
+        phrases = (
+            "my name",
+            "who am i",
+            "about me",
+            "what do you know about me",
+            "remember about me",
+            "i told you",
+            "my preference",
+            "my preferences",
+        )
+        return any(phrase in normalized for phrase in phrases)
+
+    @staticmethod
+    def _is_persistent_profile_memory(memory: MemoryRecord) -> bool:
+        metadata = memory.metadata or {}
+        if metadata.get("persistent_across_sessions") is True:
+            return True
+        tags = set(memory.tags)
+        return "chat_memory" in tags or "identity" in tags
