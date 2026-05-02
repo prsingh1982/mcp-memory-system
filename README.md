@@ -114,7 +114,143 @@ pytest
 
 ## Technical Architecture
 
-**How It Works**
+```mermaid
+flowchart TB
+    User["User"]
+    Streamlit["Streamlit UI
+    app.py
+    adapters/streamlit_ui/app.py
+    Purpose: chat, upload, memory browser, admin/audit"]
+    MCP["MCP Server
+    mcp_server.py
+    adapters/mcp/server.py
+    Purpose: expose memory operations as MCP tools/resources"]
+
+    User --> Streamlit
+    ExternalClient["MCP Client / Agent"] --> MCP
+
+    subgraph Core["Application Core"]
+        Ingestion["Ingestion Service
+        memory_core/ingestion/service.py
+        Purpose: ingest source, parse, chunk, auto-index, extract candidates"]
+        Retrieval["Retrieval Service
+        memory_core/retrieval/service.py
+        Purpose: FAISS search, keyword fallback, profile-memory inclusion, graph expansion, reranking, citations"]
+        Memory["Memory Service
+        memory_core/services/lifecycle.py
+        Purpose: canonical memory CRUD, indexing sync, merge, delete, reindex"]
+        Review["Review Service
+        memory_core/services/review.py
+        Purpose: accept/merge/reject candidate memories"]
+        Session["Session Service
+        memory_core/session/service.py
+        Purpose: session history, rolling summaries, cross-session durable chat memory promotion"]
+        Ranking["Ranking Service
+        memory_core/ranking/service.py
+        Purpose: weighted scoring for semantic, recency, importance, continuity, graph, type"]
+        Citations["Citation Service
+        memory_core/citations/service.py
+        Purpose: build chunk/source citations"]
+        LLM["Ollama LLM Client
+        memory_core/llm/ollama.py
+        Purpose: generation, summarization, structured extraction"]
+        Embeddings["Sentence-Transformers Embeddings
+        memory_core/embeddings/sentence_transformers.py
+        Purpose: local embeddings for indexing and query search"]
+    end
+
+    Streamlit --> Retrieval
+    Streamlit --> Ingestion
+    Streamlit --> Review
+    Streamlit --> Memory
+    Streamlit --> Session
+    Streamlit --> LLM
+
+    MCP --> Retrieval
+    MCP --> Ingestion
+    MCP --> Review
+    MCP --> Memory
+    MCP --> Session
+
+    Ingestion --> LLM
+    Ingestion --> Memory
+    Ingestion --> Parsers
+    Ingestion --> Chunker
+
+    Session --> LLM
+    Session --> Memory
+    Session --> Retrieval
+
+    Retrieval --> Embeddings
+    Retrieval --> Ranking
+    Retrieval --> Citations
+    Retrieval --> Vector
+    Retrieval --> Graph
+    Retrieval --> Repos
+
+    Memory --> Embeddings
+    Memory --> Vector
+    Memory --> Graph
+    Memory --> Repos
+
+    Review --> Memory
+    Review --> Repos
+
+    Citations --> Repos
+
+    subgraph Parse["Parsing / Chunking"]
+        Parsers["Parsers
+        memory_core/ingestion/parsers.py
+        Purpose: parse txt, md, html, email, pdf, docx"]
+        Chunker["Chunker
+        memory_core/ingestion/chunking.py
+        Purpose: split normalized text into overlapping chunks"]
+    end
+
+    subgraph Storage["Storage Layer"]
+        Repos["SQLite Repositories
+        memory_core/storage/sqlite/repositories.py
+        Purpose: sources, memories, versions, chunks, candidates, jobs, sessions, audit"]
+        SQLite["SQLite DB
+        data/sqlite/memory.db
+        Purpose: system of record"]
+        Vector["FAISS Vector Index
+        memory_core/storage/faiss/index.py
+        data/faiss/
+        Purpose: semantic retrieval index"]
+        Graph["Neo4j Graph Store
+        memory_core/storage/neo4j/store.py
+        Purpose: memory relationships, provenance, graph expansion"]
+        Imports["Imported Files
+        data/imports/
+        Purpose: uploaded source files"]
+    end
+
+    Repos --> SQLite
+    Ingestion --> Imports
+
+    subgraph Domain["Domain / Contracts"]
+        Models["Pydantic Models
+        memory_core/domain/models.py
+        Purpose: memory, source, chunk, retrieval, session, audit schemas"]
+        Enums["Enums
+        memory_core/domain/enums.py
+        Purpose: canonical types and statuses"]
+        Interfaces["Protocols / Interfaces
+        memory_core/interfaces/
+        Purpose: abstraction boundaries for services, storage, retrieval, LLM, graph"]
+    end
+
+    Streamlit -. uses .-> Models
+    MCP -. uses .-> Models
+    Core -. uses .-> Models
+    Core -. uses .-> Enums
+    Core -. follows .-> Interfaces
+
+```
+
+
+## How It Works
 
 * `Streamlit UI` is the human-facing app for chat, upload, review, browsing, and audit.
 * `MCP Server` exposes the same core capabilities as tool-style operations for external agents/clients.
